@@ -10,7 +10,7 @@ This GitHub repository provides all code necessary to run the multiscale model o
 
 #### Stan models ("model" folder)
 
-:one: *hierarchical_mSOS_all_temperature_model.stan* - implements the model fit to all the data simultaneously. Note to reduce computational time the likelihood for each unique combination of datapoint values in only calculated once.
+:one: *hierarchical_mSOS_all_temperature_model.stan* - implements the model fit to all the data simultaneously. Note to reduce computational time the likelihood for each unique combination of datapoint values is only calculated once.
 
 :two: *mSOS_single_temperature_model_O_spz.stan* - implements the model fit to the data at 27°C, which includes the time from inoculation to oocyst and oocyst to sporozoite.
 
