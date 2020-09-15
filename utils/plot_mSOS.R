@@ -285,37 +285,6 @@ png(file = "figures/oocysts_single_temp_model_27.png", width = 800, height = 500
 plot_grid(p, x_axis, ncol = 1, rel_heights = c(1, 0.05))
 dev.off()
 
-# logistic growth model
-#sporozoite_totals_no_exp <- subset(generate_prevalence(sporozoite_data, FALSE), temp == 27)
-#sporozoite_totals_no_exp <- subset(sporozoite_totals_no_exp,
-#                                   day_post_inf <= sporozoite_totals_no_exp[which(sporozoite_totals_no_exp$prevalence == max(sporozoite_totals_no_exp$prevalence)),"day_post_inf"])
-
-# non linear least squares fitting of logistic function
-#fitmodel27<-nls(prevalence~g/(1+exp(-k*(day_post_inf-t))),data=sporozoite_totals_no_exp,start=list(g=.4,k=2,t=12))
-#logistic_fit <- data.frame("day_post_inf" = PPD_times, "median" = summary(fitmodel27)$coefficients["g",1] / (1 + exp(- summary(fitmodel27)$coefficients["k",1] *
-#                                                                     (PPD_times - summary(fitmodel27)$coefficients["t",1]))),
-#                           "lower" = rep(NA, length(PPD_times)), "upper" = rep(NA, length(PPD_times)),
-#                           "mean" = rep(NA, length(PPD_times)), temp = rep(27, length(PPD_times)), 
-#                           "model" = rep("logistic growth model", length(PPD_times)))
-
-### comparing the different methods to estimate the EIP
-#fit_27_extract <- rstan::extract(fit_27)
-#EIP_27<- generate_EIP_27_data(fit_27_extract, logistic_fit, "B")
-
-#old_EIP <- data.frame("time" = sporozoite_prop_ppd_df_27[,"day_post_inf"], values = 
-#                        sporozoite_prop_ppd_df_27[,"median"]/ max(sporozoite_prop_ppd_df_27[,"median"]))
-
-#plot_EIP_27(EIP_27[[1]], EIP_27[[2]]) + geom_line(data = old_EIP, aes(x = time, y = values), colour = "green")
-
-#p <- plot_grid(sporozoite_prevalence_plot_logistic_single(sporozoite_totals_all, blank_theme, "A", 27, logistic_fit) +
-#            theme(axis.title.x = element_blank()),
-#          plot_EIP_27(EIP_27[[1]], EIP_27[[2]]) +
-#            theme(axis.title.x = element_blank()))
-
-#png(file = "figures/logist_growth_model.png", width = 1400, height = 500)
-#plot_grid(p, x_axis, ncol = 1, rel_heights = c(1, 0.05))
-#dev.off()
-
 ###################################################################################
 ########## getting the values for the results for the 27 degrees celsius ##########
 ###################################################################################
