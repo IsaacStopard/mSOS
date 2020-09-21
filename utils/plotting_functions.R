@@ -1,3 +1,8 @@
+# R script 
+# Author: Isaac J Stopard
+# Version: 0.01 
+# Last updated: 21/09/2020
+# Notes: functions to put data in the correct format for plotting - note changes in packages may affect these functions
 
 ####################################################################
 ################ posterior predictive means ########################
@@ -26,7 +31,8 @@ prop_ppd_function <- function(fit_df, unique_temp, length_ppd_times, iterations,
   prop_ppd_df$upper <- apply(prop_ppd_df[,1:((iterations - warmup)*chains)], 1, quantile, probs = c(0.975))
   prop_ppd_df$mean <- apply(prop_ppd_df[,1:((iterations - warmup)*chains)], 1, mean)
   
-  prop_ppd_df <- prop_ppd_df%>%gather("iteration", "value", 1:((iterations - warmup) * chains))
+  x <- ((iterations - warmup) * chains) 
+  prop_ppd_df <- prop_ppd_df%>%gather("iteration", "value", 1:x)
   prop_ppd_df$percentile <- rep("iteration", nrow(prop_ppd_df))
   
   prop_quantile_ppd_df <- subset(prop_ppd_df, iteration == "V1")
@@ -48,7 +54,8 @@ prop_ppd_function_single <- function(length_ppd_times, iterations, warmup, chain
   prop_ppd_df$upper <- apply(prop_ppd_df[,1:((iterations - warmup)*chains)], 1, quantile, probs = c(0.975))
   prop_ppd_df$mean <- apply(prop_ppd_df[,1:((iterations - warmup)*chains)], 1, mean)
   
-  prop_ppd_df <- prop_ppd_df%>%gather("iteration", "value", 1:((iterations - warmup) * chains))
+  x <- x
+  prop_ppd_df <- prop_ppd_df%>%gather("iteration", "value", 1:x)
   
   prop_quantile_ppd_df <- subset(prop_ppd_df, iteration == "V1")
   prop_quantile_ppd_df <- prop_quantile_ppd_df[,-c(6,7)]
@@ -129,7 +136,7 @@ oocyst_intensity_plot_PR <- function(oocyst_intensity_ppd_df, oocyst_intensity_s
   oocyst_intensity_ppd_df$temp_label <- paste0(oocyst_intensity_ppd_df$temp, "°C")
   ggplot() + 
     geom_ribbon(data = subset(oocyst_intensity_ppd_df, temp == temp_ & day_post_inf <= 10), 
-                aes(x = day_post_inf, ymin = lower_m, ymax = upper_m), fill = "grey55", alpha = 0.4) +
+                aes(x = day_post_inf, ymin = lower, ymax = upper), fill = "grey55", alpha = 0.4) +
     geom_line(data = subset(oocyst_intensity_ppd_df, temp == temp_ & day_post_inf <= 10), 
               aes(x = day_post_inf, y = median), colour = "black", linetype = 1, size = 0.75) +
     geom_pointrange(data = subset(oocyst_intensity_summary, temp == temp_ & day_post_inf <= 10),
@@ -380,7 +387,7 @@ oocyst_intensity_plot_single_PR <- function(oocyst_intensity_ppd_df, oocyst_inte
   oocyst_intensity_ppd_df$label <- rep(label, nrow(oocyst_intensity_ppd_df))
   ggplot() + 
     geom_ribbon(data = subset(oocyst_intensity_ppd_df, day_post_inf <= 10), 
-                aes(x = day_post_inf, ymin = lower_m, ymax = upper_m), fill = "grey55", alpha = 0.4) +
+                aes(x = day_post_inf, ymin = lower, ymax = upper), fill = "grey55", alpha = 0.4) +
     geom_line(data = subset(oocyst_intensity_ppd_df, day_post_inf <= 10), 
               aes(x = day_post_inf, y = median), colour = "black", linetype = 1, size = 0.75) +
     geom_pointrange(data = subset(oocyst_intensity_summary, temp == temp_ & day_post_inf <= 10),
