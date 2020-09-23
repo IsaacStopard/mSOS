@@ -289,31 +289,24 @@ dev.off()
 ########## getting the values for the results for the 27 degrees celsius ##########
 ###################################################################################
 
-#median_EIP_m <- round(EIP_27[[1]]$mSOS, digits = 3)
-#median_EIP_l <- round(EIP_27[[1]]$logistic.growth, digits = 3)
-#EIP_27[[1]][which(abs(median_EIP_m - 0.1) == min(abs(median_EIP_m - 0.1))),1]
-#EIP_27[[1]][which(abs(median_EIP_m - 0.9) == min(abs(median_EIP_m - 0.9))),1]
-#EIP_27[[1]][which(abs(median_EIP_l - 0.1) == min(abs(median_EIP_l - 0.1))),1]
-#EIP_27[[1]][which(abs(median_EIP_l - 0.9) == min(abs(median_EIP_l - 0.9))),1]
-
 # checking the values
 # times are only calculated to the nearest 0.1 days
 # the model outputs are rounded to the 3 decimal places and the time-point nearest the desired model output is selected
-oocyst_check <- round(oocyst_prop_ppd_df_27$median, digits = 4)
+oocyst_check <- round(oocyst_prop_ppd_df_27$upper, digits = 4)
 oocyst_prop_ppd_df_27[which(abs(oocyst_check - 0.1) == min(abs(oocyst_check - 0.1))),"day_post_inf"]
 oocyst_prop_ppd_df_27[which(abs(oocyst_check - max(oocyst_check)) == min(abs(oocyst_check - max(oocyst_check)))),"day_post_inf"]
+max(oocyst_check)
 
 oocyst_intensity_check <- round(oocyst_intensity_ppd_df_27$upper, digits = 4)
 oocyst_intensity_ppd_df_27[which(abs(oocyst_intensity_check - max(oocyst_intensity_check)) == min(abs(oocyst_intensity_check - max(oocyst_intensity_check)))),"day_post_inf"]
+max(oocyst_intensity_check)
 
-
-sporozoite_check <- round(sporozoite_prop_ppd_df_27$median, digits = 4)
+sporozoite_check <- round(sporozoite_prop_ppd_df_27$upper, digits = 4)
 a <- subset(sporozoite_prop_ppd_df_27, day_post_inf < sporozoite_prop_ppd_df_27[max(which(sporozoite_check == max(sporozoite_check))),"day_post_inf"])
 a_check <- round(a$median, digits = 4)
 sporozoite_prop_ppd_df_27[which(abs(sporozoite_check - 0.1) == min(abs(sporozoite_check - 0.1))),"day_post_inf"]
 a[which(abs(a_check - max(sporozoite_check)) == min(abs(a_check - max(sporozoite_check)))),"day_post_inf"]
-
-sporozoite_prop_ppd_df_27[which(abs(sporozoite_check - max(sporozoite_check)) == min(abs(sporozoite_check - max(sporozoite_check)))),"day_post_inf"]
+max(sporozoite_check)
 
 ############################################################################################
 ####################### sporozoite plots - single temperature models #######################
@@ -360,11 +353,11 @@ percentiles <- c(0.1, 0.5, 0.9) # EIP percentile
 quantiles <- c(0.05, 0.5, 0.95)
 
 # estimating the EIP for every 5th iteration - takes a long time to run
-#to_go <- generate_EIP_values(parameter_df, time_input, temp_input, unique_temp_scaled, iteration_index, percentiles) # need to run this again is the RDS hasn't been saved
+to_go <- generate_EIP_values(parameter_df, time_input, temp_input, unique_temp_scaled, iteration_index, percentiles) # need to run this again is the RDS hasn't been saved
 to_go <- readRDS(file = "results/hierarchical_mSOS_EIP_values")
 to_go_percentiles_plot <- generate_EIP_quantiles(to_go, temp_input, percentiles, quantiles) 
 iteration_index_single <- seq(1,((iterations - warmup)*chains), 1)
-#to_go_single <- generate_EIP_values_single(unique_temp, iteration_index_single, time_input, percentiles) # need to run this again is the RDS hasn't been saved
+to_go_single <- generate_EIP_values_single(unique_temp, iteration_index_single, time_input, percentiles) # need to run this again is the RDS hasn't been saved
 to_go_single_all <- readRDS(file = "results/mSOS_EIP_values_single")
 
 single_all_range_data <- expand.grid(unique(to_go_single_all$percentile), unique(to_go_single_all$temps_single_all))
@@ -386,8 +379,8 @@ for(i in 1:length(unique_temp)){
 }
 
 # probability of viable infection (realised transmission probability)
-#to_go_delta_percentiles_plot <- extract_delta(fit_extract, iteration_index_single, temp_input, quantiles)
-#saveRDS(to_go_delta_percentiles_plot, file = "results/hierarchical_mSOS_delta_values")
+to_go_delta_percentiles_plot <- extract_delta(fit_extract, iteration_index_single, temp_input, quantiles)
+saveRDS(to_go_delta_percentiles_plot, file = "results/hierarchical_mSOS_delta_values")
 to_go_delta_percentiles_plot <- readRDS(file = "results/hierarchical_mSOS_delta_values")
 
 delta_single_values <- extract_delta_single(indexes, iteration_index_single, unique_temp_scaled, unique_temp)
@@ -550,7 +543,14 @@ prob_plot(prob_df)
 dev.off()
 
 # extracting mean values
-quantile(rstan::extract(fit_27, "shape_total_sporozoite")$shape_total_sporozoite, c(0.025, 0.5, 0.975))/quantile(rstan::extract(fit_27, "rate_total_sporozoite")$rate_total_sporozoite, c(0.025, 0.5, 0.975))
+quantile(rstan::extract(fit_27, "shape_oocyst")$shape_oocyst/rstan::extract(fit_27, "rate_oocyst")$rate_oocyst, c(0.025, 0.5, 0.975))
+quantile(rstan::extract(fit_27, "shape_sporozoite")$shape_sporozoite/rstan::extract(fit_27, "rate_sporozoite")$rate_sporozoite, c(0.025, 0.5, 0.975))
+quantile(rstan::extract(fit_27, "shape_total_sporozoite")$shape_total_sporozoite/rstan::extract(fit_27, "rate_total_sporozoite")$rate_total_sporozoite, c(0.025, 0.5, 0.975))
+
+# extracting the CDF values
+subset(prob_df, density == "B (CDF)" & stage == "G to S" & lower >= 0.995)[1,"times"]
+subset(prob_df, density == "B (CDF)" & stage == "G to S" & median >= 0.995)[1,"times"]
+subset(prob_df, density == "B (CDF)" & stage == "G to S" & upper >= 0.995)[1,"times"]
 
 #######################################################################
 ################ gamma distribution parameters ########################
