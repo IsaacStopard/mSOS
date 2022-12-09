@@ -115,6 +115,7 @@ fit_wide <- stan(file = "model/hierarchical_mSOS_all_temperature_model_wider_pri
                 warmup = warmup, control=list(adapt_delta=0.9, max_treedepth = 12.5, stepsize = 0.05), init = finit)
 
 saveRDS(fit_new, file = "results/hierarchical_mSOS_all_temperature_model_fit")
+fit_new <- readRDS( file = "results/hierarchical_mSOS_all_temperature_model_fit")
 
 saveRDS(fit_wide, file = "results/hierarchical_mSOS_all_temperature_model_fit_wide")
 

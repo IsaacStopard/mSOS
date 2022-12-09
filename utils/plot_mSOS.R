@@ -60,8 +60,6 @@ fit_new <- readRDS(file = "results/hierarchical_mSOS_all_temperature_model_fit")
 # data wrangling
 fit_df <- as.data.frame(fit_new) # converting Stan fit to data frame
 
-rm(list = c("fit_new"))
-
 fit_wide <- readRDS(file = "results/hierarchical_mSOS_all_temperature_model_fit_wide")
 
 fit_wide_df <- as.data.frame(fit_wide) # converting Stan fit to data frame
@@ -106,7 +104,7 @@ parameters <- c("shape_oocyst", "m_rate_oocyst", "c_rate_oocyst",
 
 fit_bayesplot <- as.array(fit_new, pars = parameters)
 parameter_labels <- c("alpha[GO]", "m[beta]", "c[beta]", "alpha[OS]",
-                      "beta[OS]", "mu", "k", "m[delta]", "c[delta]", "a", "b",
+                      "beta[OS]", "mu", "k", "m[delta]", "c[delta]", "a[s]", "b[s]",
                       "beta[E]", "beta[C]", #"C[cox]", 
                       "sigma[delta]", "sigma[survival]")
 
@@ -121,6 +119,57 @@ mcmc_trace(fit_bayesplot, parameter_labels, n_warmup = 0,
         axis.line = element_line(colour = "black"), legend.title = element_text(size = 20),
         legend.text=element_text(size=20), legend.key = element_rect(fill = "white")) + 
   guides(colour = guide_legend(override.aes = list(size = 7)))
+dev.off()
+
+# pairs plots of the gamma distribution mean and variance
+shape_o <-  rstan::extract(fit_new, "shape_oocyst")[[1]]
+shape_s <- rstan::extract(fit_new, "shape_sporozoite")[[1]]
+rate_s <- rstan::extract(fit_new, "rate_sporozoite")[[1]]
+
+mu_total_s <- data.frame(rstan::extract(fit_new, "mu_total_sporozoite")[[1]])
+colnames(mu_total_s) <- unique_temp
+mu_total_s <- mu_total_s %>% gather(key = "temp", value = "mu_total_s", 1:ncol(mu_total_s))
+
+sigma_sq_s <- data.frame(rstan::extract(fit_new, "sigma_sq_sporozoite")[[1]])
+colnames(sigma_sq_s) <- unique_temp
+sigma_sq_s <- sigma_sq_s %>% gather(key = "temp", value = "sigma_sq_s", 1:ncol(sigma_sq_s))
+
+ggplot(data = cbind(mu_total_s, sigma_sq_s), aes(x = mu_total_s, y = sigma_sq_s)) +
+  geom_point(shape = 21, alpha = 0.1, fill = "skyblue", col = "skyblue1") + theme_bw() +
+  facet_wrap(~ temp, scales = "free")
+
+rate_o <- rstan::extract(fit_new, "rate_oocyst")[[1]]
+
+gamma_o_df <- bind_rows(lapply(seq(1, ncol(rate_o)), function(i, unique_temp, shape_o, rate_o){
+  return(data.frame("mean" = shape_o/rate_o[,i],
+                    "var" = shape_o/rate_o[,i]^2,
+                    "temp" = unique_temp[i]))
+  },
+  unique_temp = unique_temp,
+  shape_o = shape_o,
+  rate_o = rate_o))
+
+png(file = "figures/mean_var_pairs.png", height = 1100, width = 1000)
+plot_grid(
+  ggplot(data = gamma_o_df %>% mutate(temp = paste0(temp,"°C")), aes(x = mean, y = var)) +
+    geom_point(shape = 21, alpha = 0.17, fill = "deepskyblue", col = "deepskyblue3") +
+    facet_wrap(~temp, scales = "free") + blank_theme  +
+    xlab("Mean of the gamma distributed\nparasite development times from G to O") +
+    ylab("Variance of the gamma distributed\nparasite development times from G to O") +
+    theme(strip.text.x = element_text(size = 15)),
+  
+  plot_grid(
+    ggplot(data = data.frame("mean_s" = shape_s/rate_s, "var_s" = shape_s/rate_s^2),
+       aes(x = mean_s, y = var_s)) +
+  geom_point(shape = 21, col = "deepskyblue3", alpha = 0.17, fill = "deepskyblue") + blank_theme +
+  scale_x_continuous(breaks = seq(7.5, 9, 0.5), limits = c(7.5, 9)) +
+  xlab("Mean of the gamma distributed\nparasite development times from O to S") +
+  ylab("Variance of the gamma distributed\nparasite development times from O to S"),
+  NULL, nrow = 1, rel_widths = c(0.5, 0.25)
+  ),
+  nrow = 2, rel_heights = c(1, 0.75),
+  labels = c("A", "B")
+)
 dev.off()
 
 ################## all temperature model fits ###################
@@ -530,7 +579,7 @@ parameters <- c("shape_oocyst", "m_rate_oocyst", "c_rate_oocyst",
                 "shape_sporozoite", "rate_sporozoite", "mu_NB", "k_NB", 
                 "m_delta", "c_delta", "a", "b", "beta_inf", "beta_temp", "sigma_error_delta", "sigma_error_survival") # "intercept", 
 labels <- c("alpha[GO]", "m[beta]", "c[beta]", "alpha[OS]", "beta[OS]", "mu", "k", "m[delta]",
-            "c[delta]", "a", "b", "beta[E]", "beta[C]", "sigma[delta]", "sigma[survival]") # "C[cox]",
+            "c[delta]", "a[s]", "b[s]", "beta[E]", "beta[C]", "sigma[delta]", "sigma[survival]") # "C[cox]",
 
 posteriors <- parameter_extract_po(parameters, fit_new, labels)
 posteriors$SD <- rep("2.5", nrow(posteriors))
@@ -549,15 +598,17 @@ f <- parameter_extract_pr(0, 7.5, 3.0, 2.5, "mu")
 g <- parameter_extract_pr(0, 7.5, 0.1, 2.5, "k")
 h <- parameter_extract_pr(-5, 5, 0, 2.5, "m[delta]")
 i <- parameter_extract_pr(0, 10, 0.8, 2.5, "c[delta]")
-j <- parameter_extract_pr(0, 0.25, 0.05, 2.5, "a")
-k <- parameter_extract_pr(0, 0.25, 0.05, 2.5, "b")
+j <- parameter_extract_pr(0, 0.25, 0.05, 2.5, "a[s]")
+k <- parameter_extract_pr(0, 0.25, 0.05, 2.5, "b[s]")
 l <- parameter_extract_pr(-4, 4, 0.5, 1.0, "beta[E]")
 m <- parameter_extract_pr(-4, 4, 0.5, 1.0, "beta[C]")
 #n <- parameter_extract_pr(-10, 5, -3, 2.5, "C[cox]")
 o <- parameter_extract_pr(0, 1.5, 0, 0.25, "sigma[delta]")
 p <- parameter_extract_pr(0, 1.5, 0, 0.25, "sigma[survival]")
 
-png(file = "figures/parameter_distribution_plot.png", width = 1000, height = 700)
+priors <- rbind(a, b, c, d, e, f, g, h, i, j, k, l, m, o, p)
+
+png(file = "figures/parameter_distribution_plot.png", width = 1250, height = 700)
 ggplot() + geom_density(data= posteriors, aes(x = values, fill = as.factor(distribution), colour = as.factor(distribution)), 
                         stat = "density", alpha = 0.5) + 
   geom_area(data = priors, aes(x = x, y = y, 
